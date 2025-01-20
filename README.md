@@ -23,5 +23,7 @@ You can also pass -f or --force anywhere to allow overwriting. Can be at start i
 Example:
  ```shell
 pls https://github.com/mistrmochov/pls/raw/refs/heads/main/src/main.rs ~/Downloads
+```
+```shell
 pls -f https://github.com/mistrmochov/pls/raw/refs/heads/main/src/main.rs ~/Downloads
 ```
