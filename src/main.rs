@@ -11,6 +11,7 @@ use std::path::Path;
 use url::Url;
 
 #[derive(Parser)]
+#[command(disable_help_flag = true)]
 #[command(allow_hyphen_values = true)]
 struct Cli {
     command: String,
@@ -162,6 +163,7 @@ fn main() -> io::Result<()> {
     let mut force = "no".to_string();
     let mut illegal = "no".to_string();
     let system = detect_os();
+    let version = "0.1.2".to_string();
 
     if cmd != "-f" && cmd != "--force" {
         url = cmd;
@@ -169,173 +171,206 @@ fn main() -> io::Result<()> {
         force = "yes".to_string();
     }
 
-    for (i, arg) in cli.args.iter().enumerate() {
-        if i == 0 {
-            if force == "yes" {
-                if arg == "-f" || arg == "--force" {
-                    illegal = double_force();
-                } else {
-                    url = arg.clone();
-                }
-            } else if arg == "-f" || arg == "--force" {
+    if url == "--version" || url == "-v" {
+        println!(
+            "{} {} {}",
+            "pls,".white().bold(),
+            "version -".white().bold(),
+            version.blue().bold()
+        );
+    } else if url == "--help" || url == "-h" {
+        println!("{}", "NAME".white().bold());
+        println!(
+            "{}",
+            "       pls - Cli downloader written in blazingly fast rust!".white()
+        );
+        println!("{}", "\nSYNOPSIS".white().bold());
+        println!(
+            "{} {}",
+            "       pls".white().bold(),
+            "(options) [URL] [OUTPUT]".white()
+        );
+        println!(
+            "{} {}",
+            "       pls".white().bold(),
+            "[URL] (options) [OUTPUT]".white()
+        );
+        println!(
+            "{} {}",
+            "       pls".white().bold(),
+            "[URL] [OUTPUT] (options)".white()
+        );
+        println!("{}", "\nOPTIONS".white().bold());
+        println!("{}", "       The following options are available:".white());
+        println!(
+            "{} {} {}",
+            "\n       -f".white().bold(),
+            "or".white(),
+            "--force".white().bold()
+        );
+        println!(
+            "{}",
+            "       This option allows overwriting files. URL and OUTPUT must be present, while choosing this option.".white()
+        );
+        println!(
+            "{} {} {}",
+            "\n       -v".white().bold(),
+            "or".white(),
+            "--version".white().bold()
+        );
+        println!(
+            "{}",
+            "       This option prints version of the program. Must be passed alone.".white()
+        );
+        println!(
+            "{} {} {}",
+            "\n       -h".white().bold(),
+            "or".white(),
+            "--help".white().bold()
+        );
+        println!(
+            "{}",
+            "       This option prints help page of the program. Must be passed alone.".white()
+        );
+    } else {
+        for (i, arg) in cli.args.iter().enumerate() {
+            if i == 0 {
                 if force == "yes" {
-                    illegal = double_force();
-                } else {
-                    force = "yes".to_string();
-                }
-            } else {
-                out = arg.clone();
-            }
-        } else if i == 1 {
-            if force == "yes" {
-                if arg == "-f" || arg == "--force" {
-                    illegal = double_force();
+                    if arg == "-f" || arg == "--force" {
+                        illegal = double_force();
+                    } else {
+                        url = arg.clone();
+                    }
+                } else if arg == "-f" || arg == "--force" {
+                    if force == "yes" {
+                        illegal = double_force();
+                    } else {
+                        force = "yes".to_string();
+                    }
                 } else {
                     out = arg.clone();
                 }
-            } else if arg == "-f" || arg == "--force" {
+            } else if i == 1 {
                 if force == "yes" {
-                    illegal = double_force();
+                    if arg == "-f" || arg == "--force" {
+                        illegal = double_force();
+                    } else {
+                        out = arg.clone();
+                    }
+                } else if arg == "-f" || arg == "--force" {
+                    if force == "yes" {
+                        illegal = double_force();
+                    } else {
+                        force = "yes".to_string();
+                    }
                 } else {
-                    force = "yes".to_string();
+                    illegal = "yes".to_string();
+                    println!("{} {}", "Error:".red().bold(), "bad arguments!".white());
                 }
             } else {
                 illegal = "yes".to_string();
-                println!("{} {}", "Error:".red().bold(), "bad arguments!".white());
+                println!(
+                    "{} {} {}",
+                    "Error:".red().bold(),
+                    "More than three arguments".white(),
+                    "are not allowed!".red().bold()
+                );
             }
-        } else {
-            illegal = "yes".to_string();
-            println!(
-                "{} {} {}",
-                "Error:".red().bold(),
-                "More than three arguments".white(),
-                "are not allowed!".red().bold()
-            );
         }
-    }
 
-    if url == "empty" {
-        illegal = "yes".to_string();
-        println!("{} {}", "Error".red().bold(), "No URL specified".white());
-    }
+        if url == "empty" {
+            illegal = "yes".to_string();
+            println!("{} {}", "Error".red().bold(), "No URL specified".white());
+        }
 
-    if illegal == "no" {
-        // println!(
-        //     "{} {} {} {}",
-        //     "url:".white(),
-        //     url.blue().bold(),
-        //     "out".white(),
-        //     out.blue()
-        // );
-        // println!("{} {}", "force".white(), force.blue().bold());
-        if let Some(file_name) = get_file_name_from_url(&url) {
-            if let Some(home) = home_dir() {
-                // if out.starts_with('~') {
-                //     out = remove_tilde(&out);
-                //     if out.starts_with('/') && (system == "win" || system == "unix") {
-                //         out = remove_slash_start(&out);
-                //         out = home.join(out.clone()).to_string_lossy().to_string();
-                //     } else if out.starts_with('\\') && system == "win" {
-                //         out = remove_backslash(&out);
-                //         out = home.join(out.clone()).to_string_lossy().to_string();
-                //     } else {
-                //         println!(
-                //             "{} {}",
-                //             "Error".red().bold(),
-                //             "Home directory written incorrectly!".white()
-                //         );
-                //         return Ok(());
-                //     }
-                // }
-                if out.starts_with('~') && system == "win" {
-                    out = remove_tilde(&out);
-                    if out.starts_with('\\') {
-                        out = remove_backslash_start(&out);
-                        out = home.join(out.clone()).to_string_lossy().to_string();
-                    } else if out.starts_with('/') {
-                        out = remove_slash_start(&out);
-                        out = home.join(out.clone()).to_string_lossy().to_string();
-                    } else {
-                        println!(
-                            "{} {}",
-                            "Error".red().bold(),
-                            "Home directory written incorrectly!".white()
-                        );
-                        return Ok(());
+        if illegal == "no" {
+            if let Some(file_name) = get_file_name_from_url(&url) {
+                if let Some(home) = home_dir() {
+                    if out.starts_with('~') && system == "win" {
+                        out = remove_tilde(&out);
+                        if out.starts_with('\\') {
+                            out = remove_backslash_start(&out);
+                            out = home.join(out.clone()).to_string_lossy().to_string();
+                        } else if out.starts_with('/') {
+                            out = remove_slash_start(&out);
+                            out = home.join(out.clone()).to_string_lossy().to_string();
+                        } else {
+                            println!(
+                                "{} {}",
+                                "Error".red().bold(),
+                                "Home directory written incorrectly!".white()
+                            );
+                            return Ok(());
+                        }
                     }
-                }
-                if Path::new(&out).exists() {
-                    if !Path::new(&out).is_dir() {
-                        if Path::new(&out).is_file() {
-                            if force == "yes" {
-                                let mes = format!(
-                                    "{} {}",
-                                    "Error:".red().bold(),
-                                    "Failed to remove file!".white()
-                                );
-                                fs::remove_file(out.clone()).expect(&mes);
-                                go(url, out)?;
-                            } else {
-                                println!(
-                                    "{} {}",
-                                    "Error:".red().bold(),
-                                    "File already exists!".white()
-                                );
+                    if Path::new(&out).exists() {
+                        if !Path::new(&out).is_dir() {
+                            if Path::new(&out).is_file() {
+                                if force == "yes" {
+                                    let mes = format!(
+                                        "{} {}",
+                                        "Error:".red().bold(),
+                                        "Failed to remove file!".white()
+                                    );
+                                    fs::remove_file(out.clone()).expect(&mes);
+                                    go(url, out)?;
+                                } else {
+                                    println!(
+                                        "{} {}",
+                                        "Error:".red().bold(),
+                                        "File already exists!".white()
+                                    );
+                                }
                             }
-                        }
-                    } else if Path::new(&out).is_dir() {
-                        if out.ends_with('/') {
-                            out = remove_slash(&out);
-                        }
-                        if out.ends_with('\\') && system == "win" {
-                            out = remove_backslash(&out);
-                        }
+                        } else if Path::new(&out).is_dir() {
+                            if out.ends_with('/') {
+                                out = remove_slash(&out);
+                            }
+                            if out.ends_with('\\') && system == "win" {
+                                out = remove_backslash(&out);
+                            }
 
-                        out = Path::new(&out)
-                            .join(file_name)
-                            .to_string_lossy()
-                            .to_string();
+                            out = Path::new(&out)
+                                .join(file_name)
+                                .to_string_lossy()
+                                .to_string();
 
-                        file_check_go(url, out, force)?;
-                    }
-                } else {
-                    let out_bare = get_dir_from_path(&out);
-                    if Path::new(&out_bare).exists() && Path::new(&out_bare).is_dir() {
-                        if out_bare == "." {
+                            file_check_go(url, out, force)?;
+                        }
+                    } else {
+                        let out_bare = get_dir_from_path(&out);
+                        if Path::new(&out_bare).exists() && Path::new(&out_bare).is_dir() {
+                            if out_bare == "." {
+                                out = file_name;
+                                file_check_go(url, out, force)?;
+                            } else {
+                                go(url, out)?;
+                            }
+                        } else if out == "empty" {
                             out = file_name;
                             file_check_go(url, out, force)?;
                         } else {
-                            go(url, out)?;
+                            println!(
+                                "{} {}",
+                                "Error".red().bold(),
+                                "Output directory couldn't be found!".white()
+                            );
                         }
-                    } else if out == "empty" {
-                        out = file_name;
-                        file_check_go(url, out, force)?;
-                    } else {
-                        println!(
-                            "{} {}",
-                            "Error".red().bold(),
-                            "Output directory couldn't be found!".white()
-                        );
                     }
+                } else {
+                    println!(
+                        "{} {}",
+                        "Error:".red().bold(),
+                        "Unable to determine home directory!".white()
+                    );
                 }
             } else {
                 println!(
                     "{} {}",
                     "Error:".red().bold(),
-                    "Unable to determine home directory!".white()
+                    "No file name found in the URL!".white()
                 );
             }
-        } else {
-            println!(
-                "{} {}",
-                "Error:".red().bold(),
-                "No file name found!".white()
-            );
-            println!(
-                "{} {}",
-                "Error:".red().bold(),
-                "No file name found in the URL!".white()
-            );
         }
     }
 
