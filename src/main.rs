@@ -3,6 +3,7 @@ use colored::*;
 use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::Client;
+use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::copy;
@@ -16,6 +17,18 @@ struct Cli {
     command: String,
     #[arg(trailing_var_arg = true)]
     args: Vec<String>,
+}
+
+#[cfg(windows)]
+fn detect_os() -> String {
+    let system = "win".to_string();
+    system
+}
+
+#[cfg(unix)]
+fn detect_os() -> String {
+    let system = "unix".to_string();
+    system
 }
 
 fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error::Error>> {
@@ -141,6 +154,7 @@ fn main() -> io::Result<()> {
     let mut out = "empty".to_string();
     let mut force = "no".to_string();
     let mut illegal = "no".to_string();
+    let system = detect_os();
 
     if cmd != "-f" && cmd != "--force" {
         url = cmd;
@@ -278,10 +292,14 @@ fn main() -> io::Result<()> {
                 );
             }
         } else {
-            println!("No file name found!");
             println!(
                 "{} {}",
-                "Error".red().bold(),
+                "Error:".red().bold(),
+                "No file name found!".white()
+            );
+            println!(
+                "{} {}",
+                "Error:".red().bold(),
                 "No file name found in the URL!".white()
             );
         }
