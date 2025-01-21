@@ -30,8 +30,8 @@ sudo pacman -Sy pls
 
 **Usage**
 
-First argument is URL
-Second argument is output path
+First argument is URL \
+Second argument is output path \
 You can also pass -f or --force anywhere to allow overwriting. Can be at start in the middle or at the end.
 
 Example:
