@@ -3,7 +3,6 @@ use colored::*;
 use dirs::home_dir;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::Client;
-use std::env;
 use std::fs;
 use std::fs::File;
 use std::io::copy;
@@ -111,6 +110,14 @@ fn remove_slash(out: &str) -> String {
 
 fn remove_slash_start(out: &str) -> String {
     out.trim_start_matches('/').to_string()
+}
+
+fn remove_backslash(out: &str) -> String {
+    out.trim_end_matches('\\').to_string()
+}
+
+fn remove_backslash_start(out: &str) -> String {
+    out.trim_start_matches('\\').to_string()
 }
 
 fn remove_tilde(out: &str) -> String {
@@ -223,10 +230,30 @@ fn main() -> io::Result<()> {
         // println!("{} {}", "force".white(), force.blue().bold());
         if let Some(file_name) = get_file_name_from_url(&url) {
             if let Some(home) = home_dir() {
-                if out.starts_with('~') {
-                    remove_tilde(&out);
-                    if out.starts_with('/') {
-                        remove_slash_start(&out);
+                // if out.starts_with('~') {
+                //     out = remove_tilde(&out);
+                //     if out.starts_with('/') && (system == "win" || system == "unix") {
+                //         out = remove_slash_start(&out);
+                //         out = home.join(out.clone()).to_string_lossy().to_string();
+                //     } else if out.starts_with('\\') && system == "win" {
+                //         out = remove_backslash(&out);
+                //         out = home.join(out.clone()).to_string_lossy().to_string();
+                //     } else {
+                //         println!(
+                //             "{} {}",
+                //             "Error".red().bold(),
+                //             "Home directory written incorrectly!".white()
+                //         );
+                //         return Ok(());
+                //     }
+                // }
+                if out.starts_with('~') && system == "win" {
+                    out = remove_tilde(&out);
+                    if out.starts_with('\\') {
+                        out = remove_backslash_start(&out);
+                        out = home.join(out.clone()).to_string_lossy().to_string();
+                    } else if out.starts_with('/') {
+                        out = remove_slash_start(&out);
                         out = home.join(out.clone()).to_string_lossy().to_string();
                     } else {
                         println!(
@@ -260,7 +287,14 @@ fn main() -> io::Result<()> {
                         if out.ends_with('/') {
                             out = remove_slash(&out);
                         }
-                        out = format!("{}/{}", out, file_name);
+                        if out.ends_with('\\') && system == "win" {
+                            out = remove_backslash(&out);
+                        }
+
+                        out = Path::new(&out)
+                            .join(file_name)
+                            .to_string_lossy()
+                            .to_string();
 
                         file_check_go(url, out, force)?;
                     }
