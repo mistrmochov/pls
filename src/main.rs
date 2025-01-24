@@ -91,8 +91,8 @@ fn go(url: String, out: String) -> io::Result<()> {
     Ok(())
 }
 
-fn double_force() -> String {
-    let illegal = "yes".to_string();
+fn double_force() -> bool {
+    let illegal = true;
     println!(
         "{} {}",
         "Error:".red().bold(),
@@ -133,9 +133,9 @@ fn get_dir_from_path(path: &str) -> String {
         .unwrap_or_else(|| ".".to_string()) // Default to current directory
 }
 
-fn file_check_go(url: String, out: String, force: String) -> io::Result<()> {
+fn file_check_go(url: String, out: String, force: bool) -> io::Result<()> {
     if Path::new(&out).is_file() && Path::new(&out).exists() {
-        if force == "yes" {
+        if force == true {
             let mes = format!(
                 "{} {}",
                 "Error:".red().bold(),
@@ -221,15 +221,15 @@ fn main() -> io::Result<()> {
         let cmd = cli.command;
         let mut url = "empty".to_string();
         let mut out = "empty".to_string();
-        let mut force = "no".to_string();
-        let mut illegal = "no".to_string();
+        let mut force = false;
+        let mut illegal = false;
         let system = detect_os();
         let version = "0.1.3".to_string();
 
         if cmd != "-f" && cmd != "--force" {
             url = cmd;
         } else {
-            force = "yes".to_string();
+            force = true;
         }
 
         if url == "--version" || url == "-v" {
@@ -244,40 +244,32 @@ fn main() -> io::Result<()> {
         } else {
             for (i, arg) in cli.args.iter().enumerate() {
                 if i == 0 {
-                    if force == "yes" {
+                    if force == true {
                         if arg == "-f" || arg == "--force" {
                             illegal = double_force();
                         } else {
                             url = arg.clone();
                         }
                     } else if arg == "-f" || arg == "--force" {
-                        if force == "yes" {
-                            illegal = double_force();
-                        } else {
-                            force = "yes".to_string();
-                        }
+                        force = true;
                     } else {
                         out = arg.clone();
                     }
                 } else if i == 1 {
-                    if force == "yes" {
+                    if force == true {
                         if arg == "-f" || arg == "--force" {
                             illegal = double_force();
                         } else {
                             out = arg.clone();
                         }
                     } else if arg == "-f" || arg == "--force" {
-                        if force == "yes" {
-                            illegal = double_force();
-                        } else {
-                            force = "yes".to_string();
-                        }
+                        force = true;
                     } else {
-                        illegal = "yes".to_string();
+                        illegal = true;
                         println!("{} {}", "Error:".red().bold(), "bad arguments!".white());
                     }
                 } else {
-                    illegal = "yes".to_string();
+                    illegal = true;
                     println!(
                         "{} {} {}",
                         "Error:".red().bold(),
@@ -288,11 +280,11 @@ fn main() -> io::Result<()> {
             }
 
             if url == "empty" {
-                illegal = "yes".to_string();
+                illegal = true;
                 println!("{} {}", "Error".red().bold(), "No URL specified".white());
             }
 
-            if illegal == "no" {
+            if illegal == false {
                 if let Some(file_name) = get_file_name_from_url(&url) {
                     if let Some(home) = home_dir() {
                         if out.starts_with('~') && system == "win" {
@@ -315,7 +307,7 @@ fn main() -> io::Result<()> {
                         if Path::new(&out).exists() {
                             if !Path::new(&out).is_dir() {
                                 if Path::new(&out).is_file() {
-                                    if force == "yes" {
+                                    if force == true {
                                         let mes = format!(
                                             "{} {}",
                                             "Error:".red().bold(),
