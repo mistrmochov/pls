@@ -1,6 +1,7 @@
 **PLS**
 
-Cli downloader written in blazingly fast rust!
+Cli downloader written in blazingly fast rust! \
+This is a incredibly fast downloader with sleek loading bar!
 __________________________________________________________________________________________________________________________________________________________________________________________
 
 **Install instructions**
