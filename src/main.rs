@@ -333,14 +333,31 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         let libs = home.join(".local/share/pls/libs");
         let ytdlp_bin = libs.join("yt-dlp");
         let ytdlp_url;
-        if architecture == "aarch64" {
-            ytdlp_url =
-                "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
-                    .to_string();
+        let mut ytdlp_zip = String::new();
+        if PathBuf::from(home.join(".termux")).exists()
+            && PathBuf::from(home.join(".termux")).is_dir()
+        {
+            if architecture == "aarch64" {
+                ytdlp_url = "https://storage.googleapis.com/mochov-public/pls/aarch64/yt-dlp-aarch64.tar.xz".to_string();
+                ytdlp_zip = "/data/data/com.termux/files/usr/tmp/yt-dlp-aarch64.tar.xz".to_string();
+            } else {
+                ytdlp_url =
+                    "https://storage.googleapis.com/mochov-public/pls/amd64/yt-dlp-amd64.tar.xz"
+                        .to_string();
+                ytdlp_zip = "/data/data/com.termux/files/usr/tmp/yt-dlp-amd64.tar.xz".to_string();
+            }
         } else {
-            ytdlp_url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
-                .to_string();
+            if architecture == "aarch64" {
+                ytdlp_url =
+                            "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
+                                .to_string();
+            } else {
+                ytdlp_url =
+                    "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+                        .to_string();
+            }
         }
+
         let ffmpeg_bin = libs.join("ffmpeg");
         let ffmpeg_zip;
         if PathBuf::from(home.join(".termux")).exists()
@@ -363,18 +380,25 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
 
         let ffmpeg_url;
         if architecture == "aarch64" {
-            ffmpeg_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
+            ffmpeg_url = "https://storage.googleapis.com/mochov-public/pls/aarch64/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
         } else {
             ffmpeg_url =
-        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
+        "https://storage.googleapis.com/mochov-public/pls/amd64/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
         }
 
         if !libs.exists() {
-            std::fs::create_dir_all(libs)?;
+            std::fs::create_dir_all(&libs)?;
         }
         if !ytdlp_bin.exists() {
             println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
-            go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
+            if PathBuf::from(home.join(".termux")).exists()
+                && PathBuf::from(home.join(".termux")).is_dir()
+            {
+                go(ytdlp_url, ytdlp_zip.clone())?;
+                extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
+            } else {
+                go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
+            }
             fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
 
             if !ytdlp_bin.exists() {
@@ -398,8 +422,15 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
             if update == true {
                 fs::remove_file(&ytdlp_bin)?;
                 println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
-                go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
-                fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
+                if PathBuf::from(home.join(".termux")).exists()
+                    && PathBuf::from(home.join(".termux")).is_dir()
+                {
+                    go(ytdlp_url, ytdlp_zip.clone())?;
+                    extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
+                } else {
+                    go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
+                    fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
+                }
 
                 if !ytdlp_bin.exists() {
                     println!(
