@@ -329,10 +329,18 @@ fn run_command_interactive(command: &str) -> io::Result<()> {
 #[cfg(unix)]
 fn ytdlp_check(update: bool) -> io::Result<()> {
     if let Some(home) = home_dir() {
+        let architecture = std::env::consts::ARCH;
         let libs = home.join(".local/share/pls/libs");
         let ytdlp_bin = libs.join("yt-dlp");
-        let ytdlp_url =
-            "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux".to_string();
+        let ytdlp_url;
+        if architecture == "aarch64" {
+            ytdlp_url =
+                "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64"
+                    .to_string();
+        } else {
+            ytdlp_url = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux"
+                .to_string();
+        }
         let ffmpeg_bin = libs.join("ffmpeg");
         let ffmpeg_zip = PathBuf::from("/tmp/ffmpeg-master-latest-linux64-gpl.tar.xz");
         let ffmpeg_url =
