@@ -635,7 +635,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         if !libs.exists() {
             std::fs::create_dir_all(libs)?;
         }
-        if !ytdlp_bin.exists() {
+        if !ytdlp_bin.exists() && update == false {
             println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
             go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
 
@@ -658,7 +658,9 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
             }
         } else {
             if update == true {
-                fs::remove_file(&ytdlp_bin)?;
+                if ytdlp_bin.exists() {
+                    fs::remove_file(&ytdlp_bin)?;
+                }
                 println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
                 go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
 
@@ -681,7 +683,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 }
             }
         }
-        if !ffmpeg_bin.exists() {
+        if !ffmpeg_bin.exists() && update == false {
             println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
             go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
             extract_zip(
@@ -713,7 +715,9 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         } else {
             if update == true {
                 println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
-                fs::remove_file(&ffmpeg_bin)?;
+                if ffmpeg_bin.exists() {
+                    fs::remove_file(&ffmpeg_bin)?;
+                }
                 go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
                 extract_zip(
                     &ffmpeg_zip.to_string_lossy(),
