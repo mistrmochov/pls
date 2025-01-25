@@ -406,6 +406,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
             {
                 go(ytdlp_url, ytdlp_zip.clone())?;
                 extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
+                fs::remove_file(ytdlp_zip)?;
             } else {
                 go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
             }
@@ -435,14 +436,15 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 if PathBuf::from(home.join(".termux")).exists()
                     && PathBuf::from(home.join(".termux")).is_dir()
                 {
-                    if libs.join("python3.12").is_file() {
+                    if libs.join("python3.12").exists() {
                         fs::remove_file("python3.12")?;
                     }
                     if libs.join("yt_dlp").exists() {
-                        std::fs::remove_dir_all("yt_dlp")?;
+                        fs::remove_dir_all("yt_dlp")?;
                     }
                     go(ytdlp_url, ytdlp_zip.clone())?;
                     extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
+                    fs::remove_file(ytdlp_zip)?;
                 } else {
                     go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
                     fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
