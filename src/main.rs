@@ -268,24 +268,6 @@ fn extract_tar_xz(file_path: &str, output_dir: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-#[cfg(unix)]
-fn extract_tar_xz_clean(file_path: &str, output_dir: &str) -> io::Result<()> {
-    let tar_gz_path = Path::new(file_path);
-    let extract_to = Path::new(output_dir);
-
-    // Open the tar.xz file
-    let file = fs::File::open(tar_gz_path)?;
-
-    // Create a decoder for .xz
-    let decompressed = xz2::read::XzDecoder::new(file);
-
-    // Extract files directly into the destination directory
-    let mut archive = Archive::new(decompressed);
-    archive.unpack(extract_to)?;
-
-    Ok(())
-}
-
 #[cfg(windows)]
 fn extract_zip(zip_path: &str, output_dir: &str) -> io::Result<()> {
     // Open the zip file
@@ -397,11 +379,21 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         }
 
         let ffmpeg_url;
-        if architecture == "aarch64" {
-            ffmpeg_url = "https://storage.googleapis.com/mochov-public/pls/aarch64/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
+        if PathBuf::from(home.join(".termux")).exists()
+            && PathBuf::from(home.join(".termux")).is_dir()
+        {
+            if architecture == "aarch64" {
+                ffmpeg_url = "https://storage.googleapis.com/mochov-public/pls/aarch64/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
+            } else {
+                ffmpeg_url =
+                "https://storage.googleapis.com/mochov-public/pls/amd64/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
+            }
         } else {
-            ffmpeg_url =
-        "https://storage.googleapis.com/mochov-public/pls/amd64/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
+            if architecture == "aarch64" {
+                ffmpeg_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
+            } else {
+                ffmpeg_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
+            }
         }
 
         if !libs.exists() {
@@ -413,7 +405,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 && PathBuf::from(home.join(".termux")).is_dir()
             {
                 go(ytdlp_url, ytdlp_zip.clone())?;
-                extract_tar_xz_clean(&ytdlp_zip, &libs.to_string_lossy())?;
+                extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
             } else {
                 go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
             }
@@ -444,7 +436,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                     && PathBuf::from(home.join(".termux")).is_dir()
                 {
                     go(ytdlp_url, ytdlp_zip.clone())?;
-                    extract_tar_xz_clean(&ytdlp_zip, &libs.to_string_lossy())?;
+                    extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
                 } else {
                     go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
                     fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
