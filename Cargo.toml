@@ -8,7 +8,10 @@ clap = { version = "4.5.26", features = ["derive"] }
 colored = "3.0.0"
 dirs = "6.0.0"
 duct = "0.13.7"
+flate2 = "1.0.35"
 indicatif = "0.17.9"
 reqwest = { version = "0.12.12", features = ["blocking", "json"] }
+tar = "0.4.43"
 url = "2.5.4"
-yt-dlp = "1.2.3"
+xz2 = "0.1.7"
+zip = "2.2.2"
