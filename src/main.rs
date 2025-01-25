@@ -399,7 +399,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         if !libs.exists() {
             std::fs::create_dir_all(&libs)?;
         }
-        if !ytdlp_bin.exists() {
+        if !ytdlp_bin.exists() && update == false {
             println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
             if PathBuf::from(home.join(".termux")).exists()
                 && PathBuf::from(home.join(".termux")).is_dir()
@@ -431,16 +431,18 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
             }
         } else {
             if update == true {
-                fs::remove_file(&ytdlp_bin)?;
+                if ytdlp_bin.exists() {
+                    fs::remove_file(&ytdlp_bin)?;
+                }
                 println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
                 if PathBuf::from(home.join(".termux")).exists()
                     && PathBuf::from(home.join(".termux")).is_dir()
                 {
                     if libs.join("python3.12").exists() {
-                        fs::remove_file("python3.12")?;
+                        fs::remove_file(libs.join("python3.12"))?;
                     }
                     if libs.join("yt_dlp").exists() {
-                        fs::remove_dir_all("yt_dlp")?;
+                        fs::remove_dir_all(libs.join("yt_dlp"))?;
                     }
                     go(ytdlp_url, ytdlp_zip.clone())?;
                     extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
@@ -469,7 +471,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 }
             }
         }
-        if !ffmpeg_bin.exists() {
+        if !ffmpeg_bin.exists() && update == false {
             println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
             go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
             if PathBuf::from(home.join(".termux")).exists()
@@ -540,7 +542,9 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
             }
         } else {
             if update == true {
-                fs::remove_file(&ffmpeg_bin)?;
+                if ffmpeg_bin.exists() {
+                    fs::remove_file(&ffmpeg_bin)?;
+                }
                 println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
                 go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
                 if PathBuf::from(home.join(".termux")).exists()
