@@ -435,6 +435,12 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 if PathBuf::from(home.join(".termux")).exists()
                     && PathBuf::from(home.join(".termux")).is_dir()
                 {
+                    if libs.join("python3.12").is_file() {
+                        fs::remove_file("python3.12")?;
+                    }
+                    if libs.join("yt_dlp").exists() {
+                        std::fs::remove_dir_all("yt_dlp")?;
+                    }
                     go(ytdlp_url, ytdlp_zip.clone())?;
                     extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
                 } else {
