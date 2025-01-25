@@ -342,9 +342,32 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 .to_string();
         }
         let ffmpeg_bin = libs.join("ffmpeg");
-        let ffmpeg_zip = PathBuf::from("/tmp/ffmpeg-master-latest-linux64-gpl.tar.xz");
-        let ffmpeg_url =
-                "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
+        let ffmpeg_zip;
+        if PathBuf::from(home.join(".termux")).exists()
+            && PathBuf::from(home.join(".termux")).is_dir()
+        {
+            if architecture == "aarch64" {
+                ffmpeg_zip = PathBuf::from("/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl.tar.xz")
+            } else {
+                ffmpeg_zip = PathBuf::from(
+                    "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl.tar.xz",
+                );
+            }
+        } else {
+            if architecture == "aarch64" {
+                ffmpeg_zip = PathBuf::from("/tmp/ffmpeg-master-latest-linuxarm64-gpl.tar.xz");
+            } else {
+                ffmpeg_zip = PathBuf::from("/tmp/ffmpeg-master-latest-linux64-gpl.tar.xz");
+            }
+        }
+
+        let ffmpeg_url;
+        if architecture == "aarch64" {
+            ffmpeg_url = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
+        } else {
+            ffmpeg_url =
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz".to_string();
+        }
 
         if !libs.exists() {
             std::fs::create_dir_all(libs)?;
@@ -400,11 +423,53 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         if !ffmpeg_bin.exists() {
             println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
             go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
-            extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
+            if PathBuf::from(home.join(".termux")).exists()
+                && PathBuf::from(home.join(".termux")).is_dir()
+            {
+                extract_tar_xz(
+                    &ffmpeg_zip.to_string_lossy(),
+                    "/data/data/com.termux/files/usr/tmp",
+                )?;
+            } else {
+                extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
+            }
             fs::remove_file(ffmpeg_zip)?;
-            let source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+            let source;
+            if PathBuf::from(home.join(".termux")).exists()
+                && PathBuf::from(home.join(".termux")).is_dir()
+            {
+                if architecture == "aarch64" {
+                    source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
+                } else {
+                    source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+                }
+            } else {
+                if architecture == "aarch64" {
+                    source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg"
+                } else {
+                    source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+                }
+            }
             fs::copy(source, &ffmpeg_bin)?;
-            fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
+            if PathBuf::from(home.join(".termux")).exists()
+                && PathBuf::from(home.join(".termux")).is_dir()
+            {
+                if architecture == "aarch64" {
+                    fs::remove_dir_all(
+                        "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl",
+                    )?;
+                } else {
+                    fs::remove_dir_all(
+                        "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl",
+                    )?;
+                }
+            } else {
+                if architecture == "aarch64" {
+                    fs::remove_dir_all("/tmp/ffmpeg-master-latest-linuxarm64-gpl")?;
+                } else {
+                    fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
+                }
+            }
             fs::set_permissions(&ffmpeg_bin, Permissions::from_mode(0o755))?;
 
             if !ffmpeg_bin.exists() {
@@ -429,11 +494,53 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 fs::remove_file(&ffmpeg_bin)?;
                 println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
                 go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
-                extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
+                if PathBuf::from(home.join(".termux")).exists()
+                    && PathBuf::from(home.join(".termux")).is_dir()
+                {
+                    extract_tar_xz(
+                        &ffmpeg_zip.to_string_lossy(),
+                        "/data/data/com.termux/files/usr/tmp",
+                    )?;
+                } else {
+                    extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
+                }
                 fs::remove_file(ffmpeg_zip)?;
-                let source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+                let source;
+                if PathBuf::from(home.join(".termux")).exists()
+                    && PathBuf::from(home.join(".termux")).is_dir()
+                {
+                    if architecture == "aarch64" {
+                        source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
+                    } else {
+                        source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+                    }
+                } else {
+                    if architecture == "aarch64" {
+                        source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg"
+                    } else {
+                        source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+                    }
+                }
                 fs::copy(source, &ffmpeg_bin)?;
-                fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
+                if PathBuf::from(home.join(".termux")).exists()
+                    && PathBuf::from(home.join(".termux")).is_dir()
+                {
+                    if architecture == "aarch64" {
+                        fs::remove_dir_all(
+                        "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl",
+                    )?;
+                    } else {
+                        fs::remove_dir_all(
+                            "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl",
+                        )?;
+                    }
+                } else {
+                    if architecture == "aarch64" {
+                        fs::remove_dir_all("/tmp/ffmpeg-master-latest-linuxarm64-gpl")?;
+                    } else {
+                        fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
+                    }
+                }
                 fs::set_permissions(&ffmpeg_bin, Permissions::from_mode(0o755))?;
 
                 if !ffmpeg_bin.exists() {
