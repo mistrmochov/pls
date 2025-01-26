@@ -327,6 +327,180 @@ fn run_command_interactive(command: &str) -> io::Result<()> {
 }
 
 #[cfg(unix)]
+fn ytdlp_install(
+    update: bool,
+    ytdlp_bin: PathBuf,
+    ytdlp_url: String,
+    ytdlp_zip: String,
+    libs: PathBuf,
+    termux: PathBuf,
+) -> io::Result<()> {
+    if ytdlp_bin.exists() {
+        fs::remove_file(&ytdlp_bin)?;
+    }
+    if update == true {
+        println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
+    } else {
+        println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
+    }
+
+    if termux.exists() && termux.is_dir() {
+        if libs.join("python3.12").exists() {
+            fs::remove_file(libs.join("python3.12"))?;
+        }
+        if libs.join("yt_dlp").exists() {
+            fs::remove_dir_all(libs.join("yt_dlp"))?;
+        }
+        go(ytdlp_url, ytdlp_zip.clone())?;
+        extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
+        fs::remove_file(ytdlp_zip)?;
+    } else {
+        go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
+        fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
+    }
+
+    if !ytdlp_bin.exists() {
+        if update == true {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to update".white(),
+                "yt-dlp".blue().bold()
+            );
+        } else {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to install".white(),
+                "yt-dlp".blue().bold()
+            );
+        }
+        return Ok(());
+    } else {
+        if update == true {
+            println!(
+                "{} {} {}",
+                "yt-dlp".blue().bold(),
+                "has been successfully".white(),
+                "updated.".white().bold()
+            );
+        } else {
+            println!(
+                "{} {} {}",
+                "yt-dlp".blue().bold(),
+                "has been successfully".white(),
+                "installed.".white().bold()
+            );
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn ffmpeg_install(
+    update: bool,
+    ffmpeg_bin: PathBuf,
+    ffmpeg_url: String,
+    ffmpeg_zip: PathBuf,
+    termux: PathBuf,
+    architecture: &str,
+) -> io::Result<()> {
+    if ffmpeg_bin.exists() {
+        fs::remove_file(&ffmpeg_bin)?;
+    }
+    if update == true {
+        println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
+    } else {
+        println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
+    }
+
+    go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
+    if termux.exists() && termux.is_dir() {
+        extract_tar_xz(
+            &ffmpeg_zip.to_string_lossy(),
+            "/data/data/com.termux/files/usr/tmp",
+        )?;
+    } else {
+        extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
+    }
+    fs::remove_file(ffmpeg_zip)?;
+    let source;
+    if termux.exists() && termux.is_dir() {
+        if architecture == "aarch64" {
+            source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
+        } else {
+            source =
+                "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+        }
+    } else {
+        if architecture == "aarch64" {
+            source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg"
+        } else {
+            source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+        }
+    }
+    fs::copy(source, &ffmpeg_bin)?;
+    if termux.exists() && termux.is_dir() {
+        if architecture == "aarch64" {
+            fs::remove_dir_all(
+                "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl",
+            )?;
+        } else {
+            fs::remove_dir_all(
+                "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl",
+            )?;
+        }
+    } else {
+        if architecture == "aarch64" {
+            fs::remove_dir_all("/tmp/ffmpeg-master-latest-linuxarm64-gpl")?;
+        } else {
+            fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
+        }
+    }
+    fs::set_permissions(&ffmpeg_bin, Permissions::from_mode(0o755))?;
+
+    if !ffmpeg_bin.exists() {
+        if update == true {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to update".white(),
+                "ffmpeg".blue().bold()
+            );
+        } else {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to install".white(),
+                "ffmpeg".blue().bold()
+            );
+        }
+        return Ok(());
+    } else {
+        if update == true {
+            println!(
+                "{} {} {}",
+                "ffmpeg".blue().bold(),
+                "has been successfully".white(),
+                "updated.".white().bold()
+            );
+        } else {
+            println!(
+                "{} {} {}",
+                "ffmpeg".blue().bold(),
+                "has been successfully".white(),
+                "installed.".white().bold()
+            );
+        }
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
 fn ytdlp_check(update: bool) -> io::Result<()> {
     if let Some(home) = home_dir() {
         let architecture = std::env::consts::ARCH;
@@ -334,9 +508,8 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         let ytdlp_bin = libs.join("yt-dlp");
         let ytdlp_url;
         let mut ytdlp_zip = String::new();
-        if PathBuf::from(home.join(".termux")).exists()
-            && PathBuf::from(home.join(".termux")).is_dir()
-        {
+        let termux = PathBuf::from(home.join(".termux"));
+        if termux.exists() && termux.is_dir() {
             if architecture == "aarch64" {
                 ytdlp_url = "https://storage.googleapis.com/mochov-public/pls/aarch64/yt-dlp-aarch64.tar.xz".to_string();
                 ytdlp_zip = "/data/data/com.termux/files/usr/tmp/yt-dlp-aarch64.tar.xz".to_string();
@@ -360,9 +533,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
 
         let ffmpeg_bin = libs.join("ffmpeg");
         let ffmpeg_zip;
-        if PathBuf::from(home.join(".termux")).exists()
-            && PathBuf::from(home.join(".termux")).is_dir()
-        {
+        if termux.exists() && termux.is_dir() {
             if architecture == "aarch64" {
                 ffmpeg_zip = PathBuf::from("/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl.tar.xz")
             } else {
@@ -379,9 +550,7 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         }
 
         let ffmpeg_url;
-        if PathBuf::from(home.join(".termux")).exists()
-            && PathBuf::from(home.join(".termux")).is_dir()
-        {
+        if termux.exists() && termux.is_dir() {
             if architecture == "aarch64" {
                 ffmpeg_url = "https://storage.googleapis.com/mochov-public/pls/aarch64/ffmpeg-master-latest-linuxarm64-gpl.tar.xz".to_string();
             } else {
@@ -399,224 +568,148 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         if !libs.exists() {
             std::fs::create_dir_all(&libs)?;
         }
-        if !ytdlp_bin.exists() && update == false {
-            println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
-            if PathBuf::from(home.join(".termux")).exists()
-                && PathBuf::from(home.join(".termux")).is_dir()
-            {
-                go(ytdlp_url, ytdlp_zip.clone())?;
-                extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
-                fs::remove_file(ytdlp_zip)?;
-            } else {
-                go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
-            }
-            fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
-
-            if !ytdlp_bin.exists() {
-                println!(
-                    "{} {} {} {}",
-                    "Error:".red().bold(),
-                    "Failed".white().bold(),
-                    "to install".white(),
-                    "yt-dlp".blue().bold()
-                );
-                return Ok(());
-            } else {
-                println!(
-                    "{} {} {}",
-                    "yt-dlp".blue().bold(),
-                    "has been successfully".white(),
-                    "installed.".white().bold()
-                );
-            }
-        } else {
-            if update == true {
-                if ytdlp_bin.exists() {
-                    fs::remove_file(&ytdlp_bin)?;
-                }
-                println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
-                if PathBuf::from(home.join(".termux")).exists()
-                    && PathBuf::from(home.join(".termux")).is_dir()
-                {
-                    if libs.join("python3.12").exists() {
-                        fs::remove_file(libs.join("python3.12"))?;
-                    }
-                    if libs.join("yt_dlp").exists() {
-                        fs::remove_dir_all(libs.join("yt_dlp"))?;
-                    }
-                    go(ytdlp_url, ytdlp_zip.clone())?;
-                    extract_tar_xz(&ytdlp_zip, &libs.to_string_lossy())?;
-                    fs::remove_file(ytdlp_zip)?;
-                } else {
-                    go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
-                    fs::set_permissions(&ytdlp_bin, Permissions::from_mode(0o755))?;
-                }
-
-                if !ytdlp_bin.exists() {
-                    println!(
-                        "{} {} {} {}",
-                        "Error:".red().bold(),
-                        "Failed".white().bold(),
-                        "to install".white(),
-                        "yt-dlp".blue().bold()
-                    );
-                    return Ok(());
-                } else {
-                    println!(
-                        "{} {} {}",
-                        "yt-dlp".blue().bold(),
-                        "has been successfully".white(),
-                        "installed.".white().bold()
-                    );
-                }
-            }
+        if !ytdlp_bin.exists()
+            || update == true
+            || ((!libs.join("python3.12").exists() || !libs.join("yt_dlp").exists())
+                && termux.exists())
+        {
+            ytdlp_install(
+                update,
+                ytdlp_bin,
+                ytdlp_url,
+                ytdlp_zip,
+                libs,
+                termux.clone(),
+            )?;
         }
-        if !ffmpeg_bin.exists() && update == false {
-            println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
-            go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
-            if PathBuf::from(home.join(".termux")).exists()
-                && PathBuf::from(home.join(".termux")).is_dir()
-            {
-                extract_tar_xz(
-                    &ffmpeg_zip.to_string_lossy(),
-                    "/data/data/com.termux/files/usr/tmp",
-                )?;
-            } else {
-                extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
-            }
-            fs::remove_file(ffmpeg_zip)?;
-            let source;
-            if PathBuf::from(home.join(".termux")).exists()
-                && PathBuf::from(home.join(".termux")).is_dir()
-            {
-                if architecture == "aarch64" {
-                    source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
-                } else {
-                    source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
-                }
-            } else {
-                if architecture == "aarch64" {
-                    source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg"
-                } else {
-                    source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
-                }
-            }
-            fs::copy(source, &ffmpeg_bin)?;
-            if PathBuf::from(home.join(".termux")).exists()
-                && PathBuf::from(home.join(".termux")).is_dir()
-            {
-                if architecture == "aarch64" {
-                    fs::remove_dir_all(
-                        "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl",
-                    )?;
-                } else {
-                    fs::remove_dir_all(
-                        "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl",
-                    )?;
-                }
-            } else {
-                if architecture == "aarch64" {
-                    fs::remove_dir_all("/tmp/ffmpeg-master-latest-linuxarm64-gpl")?;
-                } else {
-                    fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
-                }
-            }
-            fs::set_permissions(&ffmpeg_bin, Permissions::from_mode(0o755))?;
-
-            if !ffmpeg_bin.exists() {
-                println!(
-                    "{} {} {} {}",
-                    "Error:".red().bold(),
-                    "Failed".white().bold(),
-                    "to install".white(),
-                    "ffmpeg".blue().bold()
-                );
-                return Ok(());
-            } else {
-                println!(
-                    "{} {} {}",
-                    "ffmpeg".blue().bold(),
-                    "has been successfully".white(),
-                    "installed.".white().bold()
-                );
-            }
-        } else {
-            if update == true {
-                if ffmpeg_bin.exists() {
-                    fs::remove_file(&ffmpeg_bin)?;
-                }
-                println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
-                go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
-                if PathBuf::from(home.join(".termux")).exists()
-                    && PathBuf::from(home.join(".termux")).is_dir()
-                {
-                    extract_tar_xz(
-                        &ffmpeg_zip.to_string_lossy(),
-                        "/data/data/com.termux/files/usr/tmp",
-                    )?;
-                } else {
-                    extract_tar_xz(&ffmpeg_zip.to_string_lossy(), "/tmp")?;
-                }
-                fs::remove_file(ffmpeg_zip)?;
-                let source;
-                if PathBuf::from(home.join(".termux")).exists()
-                    && PathBuf::from(home.join(".termux")).is_dir()
-                {
-                    if architecture == "aarch64" {
-                        source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
-                    } else {
-                        source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
-                    }
-                } else {
-                    if architecture == "aarch64" {
-                        source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg"
-                    } else {
-                        source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
-                    }
-                }
-                fs::copy(source, &ffmpeg_bin)?;
-                if PathBuf::from(home.join(".termux")).exists()
-                    && PathBuf::from(home.join(".termux")).is_dir()
-                {
-                    if architecture == "aarch64" {
-                        fs::remove_dir_all(
-                        "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl",
-                    )?;
-                    } else {
-                        fs::remove_dir_all(
-                            "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl",
-                        )?;
-                    }
-                } else {
-                    if architecture == "aarch64" {
-                        fs::remove_dir_all("/tmp/ffmpeg-master-latest-linuxarm64-gpl")?;
-                    } else {
-                        fs::remove_dir_all("/tmp/ffmpeg-master-latest-linux64-gpl")?;
-                    }
-                }
-                fs::set_permissions(&ffmpeg_bin, Permissions::from_mode(0o755))?;
-
-                if !ffmpeg_bin.exists() {
-                    println!(
-                        "{} {} {} {}",
-                        "Error:".red().bold(),
-                        "Failed".white().bold(),
-                        "to install".white(),
-                        "ffmpeg".blue().bold()
-                    );
-                    return Ok(());
-                } else {
-                    println!(
-                        "{} {} {}",
-                        "ffmpeg".blue().bold(),
-                        "has been successfully".white(),
-                        "installed.".white().bold()
-                    );
-                }
-            }
+        if !ffmpeg_bin.exists() || update == true {
+            ffmpeg_install(
+                update,
+                ffmpeg_bin,
+                ffmpeg_url,
+                ffmpeg_zip,
+                termux,
+                architecture,
+            )?;
         }
     }
 
+    Ok(())
+}
+
+#[cfg(windows)]
+fn ytdlp_install(update: bool, ytdlp_bin: PathBuf, ytdlp_url: String) -> io::Result<()> {
+    if ytdlp_bin.exists() {
+        fs::remove_file(&ytdlp_bin)?;
+    }
+    if update == true {
+        println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
+    } else {
+        println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
+    }
+    go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
+
+    if !ytdlp_bin.exists() {
+        if update == true {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to update".white(),
+                "yt-dlp".blue().bold()
+            );
+        } else {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to install".white(),
+                "yt-dlp".blue().bold()
+            );
+        }
+        return Ok(());
+    } else {
+        if update == true {
+            println!(
+                "{} {} {}",
+                "yt-dlp".blue().bold(),
+                "has been successfully".white(),
+                "updated.".white().bold()
+            );
+        } else {
+            println!(
+                "{} {} {}",
+                "yt-dlp".blue().bold(),
+                "has been successfully".white(),
+                "installed.".white().bold()
+            );
+        }
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn ffmpeg_install(
+    update: bool,
+    ffmpeg_bin: PathBuf,
+    ffmpeg_url: String,
+    ffmpeg_zip: PathBuf,
+    home: PathBuf,
+) -> io::Result<()> {
+    if update == true {
+        println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
+    } else {
+        println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
+    }
+    if ffmpeg_bin.exists() {
+        fs::remove_file(&ffmpeg_bin)?;
+    }
+    go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
+    extract_zip(
+        &ffmpeg_zip.to_string_lossy(),
+        &home.join("AppData\\Local\\Temp").to_string_lossy(),
+    )?;
+    fs::remove_file(ffmpeg_zip)?;
+    let source = "AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe";
+    fs::copy(source, &ffmpeg_bin)?;
+    fs::remove_dir_all(home.join("AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build"))?;
+
+    if !ffmpeg_bin.exists() {
+        if update == true {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to update".white(),
+                "ffmpeg".blue().bold()
+            );
+        } else {
+            println!(
+                "{} {} {} {}",
+                "Error:".red().bold(),
+                "Failed".white().bold(),
+                "to install".white(),
+                "ffmpeg".blue().bold()
+            );
+        }
+        return Ok(());
+    } else {
+        if update == true {
+            println!(
+                "{} {} {}",
+                "ffmpeg".blue().bold(),
+                "has been successfully".white(),
+                "updated.".white().bold()
+            );
+        } else {
+            println!(
+                "{} {} {}",
+                "ffmpeg".blue().bold(),
+                "has been successfully".white(),
+                "installed.".white().bold()
+            );
+        }
+    }
     Ok(())
 }
 
@@ -635,117 +728,11 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         if !libs.exists() {
             std::fs::create_dir_all(libs)?;
         }
-        if !ytdlp_bin.exists() && update == false {
-            println!("{} {}", "Installing".white(), "yt-dlp".blue().bold());
-            go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
-
-            if !ytdlp_bin.exists() {
-                println!(
-                    "{} {} {} {}",
-                    "Error:".red().bold(),
-                    "Failed".white().bold(),
-                    "to install".white(),
-                    "yt-dlp".blue().bold()
-                );
-                return Ok(());
-            } else {
-                println!(
-                    "{} {} {}",
-                    "yt-dlp".blue().bold(),
-                    "has been successfully".white(),
-                    "installed.".white().bold()
-                );
-            }
-        } else {
-            if update == true {
-                if ytdlp_bin.exists() {
-                    fs::remove_file(&ytdlp_bin)?;
-                }
-                println!("{} {}", "Updating".white(), "yt-dlp".blue().bold());
-                go(ytdlp_url, ytdlp_bin.to_string_lossy().to_string())?;
-
-                if !ytdlp_bin.exists() {
-                    println!(
-                        "{} {} {} {}",
-                        "Error:".red().bold(),
-                        "Failed".white().bold(),
-                        "to install".white(),
-                        "yt-dlp".blue().bold()
-                    );
-                    return Ok(());
-                } else {
-                    println!(
-                        "{} {} {}",
-                        "yt-dlp".blue().bold(),
-                        "has been successfully".white(),
-                        "installed.".white().bold()
-                    );
-                }
-            }
+        if !ytdlp_bin.exists() || update == true {
+            ytdlp_install(update, ytdlp_bin, ytdlp_url)?;
         }
-        if !ffmpeg_bin.exists() && update == false {
-            println!("{} {}", "Installing".white(), "ffmpeg".blue().bold());
-            go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
-            extract_zip(
-                &ffmpeg_zip.to_string_lossy(),
-                &home.join("AppData\\Local\\Temp").to_string_lossy(),
-            )?;
-            fs::remove_file(ffmpeg_zip)?;
-            let source = "AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe";
-            fs::copy(source, &ffmpeg_bin)?;
-            fs::remove_dir_all(home.join("AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build"))?;
-
-            if !ffmpeg_bin.exists() {
-                println!(
-                    "{} {} {} {}",
-                    "Error:".red().bold(),
-                    "Failed".white().bold(),
-                    "to install".white(),
-                    "ffmpeg".blue().bold()
-                );
-                return Ok(());
-            } else {
-                println!(
-                    "{} {} {}",
-                    "ffmpeg".blue().bold(),
-                    "has been successfully".white(),
-                    "installed.".white().bold()
-                );
-            }
-        } else {
-            if update == true {
-                println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
-                if ffmpeg_bin.exists() {
-                    fs::remove_file(&ffmpeg_bin)?;
-                }
-                go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
-                extract_zip(
-                    &ffmpeg_zip.to_string_lossy(),
-                    &home.join("AppData\\Local\\Temp").to_string_lossy(),
-                )?;
-                fs::remove_file(ffmpeg_zip)?;
-                let source = "AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe";
-                fs::copy(source, &ffmpeg_bin)?;
-                fs::remove_dir_all(home.join("AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build"))?;
-
-                if !ffmpeg_bin.exists() {
-                    println!(
-                        "{} {} {} {}",
-                        "Error:".red().bold(),
-                        "Failed".white().bold(),
-                        "to install".white(),
-                        "ffmpeg".blue().bold()
-                    );
-                    return Ok(());
-                } else {
-                    println!(
-                        "{} {} {}",
-                        "ffmpeg".blue().bold(),
-                        "has been successfully".white(),
-                        "installed.".white().bold()
-                    );
-                }
-            }
+        if !ffmpeg_bin.exists() || update == true {
+            ffmpeg_install(update, ffmpeg_bin, ffmpeg_url, ffmpeg_zip, home)?;
         }
     }
 
