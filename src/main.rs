@@ -402,6 +402,8 @@ fn ytdlp_install(
 fn ffmpeg_install(
     update: bool,
     ffmpeg_bin: PathBuf,
+    ffprobe_bin: PathBuf,
+    ffplay_bin: PathBuf,
     ffmpeg_url: String,
     ffmpeg_zip: PathBuf,
     termux: PathBuf,
@@ -409,6 +411,12 @@ fn ffmpeg_install(
 ) -> io::Result<()> {
     if ffmpeg_bin.exists() {
         fs::remove_file(&ffmpeg_bin)?;
+    }
+    if ffprobe_bin.exists() {
+        fs::remove_file(&ffprobe_bin)?;
+    }
+    if ffplay_bin.exists() {
+        fs::remove_file(&ffplay_bin)?;
     }
     if update == true {
         println!("{} {}", "Updating".white(), "ffmpeg".blue().bold());
@@ -427,21 +435,35 @@ fn ffmpeg_install(
     }
     fs::remove_file(ffmpeg_zip)?;
     let source;
+    let source2;
+    let source3;
     if termux.exists() && termux.is_dir() {
         if architecture == "aarch64" {
             source = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
+            source2 = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffprobe";
+            source3 = "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffplay";
         } else {
             source =
                 "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+            source2 =
+                "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe";
+            source3 =
+                "/data/data/com.termux/files/usr/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffplay";
         }
     } else {
         if architecture == "aarch64" {
-            source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg"
+            source = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffmpeg";
+            source2 = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffprobe";
+            source3 = "/tmp/ffmpeg-master-latest-linuxarm64-gpl/bin/ffplay";
         } else {
             source = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffmpeg";
+            source2 = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffprobe";
+            source3 = "/tmp/ffmpeg-master-latest-linux64-gpl/bin/ffplay";
         }
     }
     fs::copy(source, &ffmpeg_bin)?;
+    fs::copy(source2, &ffprobe_bin)?;
+    fs::copy(source3, &ffplay_bin)?;
     if termux.exists() && termux.is_dir() {
         if architecture == "aarch64" {
             fs::remove_dir_all(
@@ -460,8 +482,10 @@ fn ffmpeg_install(
         }
     }
     fs::set_permissions(&ffmpeg_bin, Permissions::from_mode(0o755))?;
+    fs::set_permissions(&ffprobe_bin, Permissions::from_mode(0o755))?;
+    fs::set_permissions(&ffplay_bin, Permissions::from_mode(0o755))?;
 
-    if !ffmpeg_bin.exists() {
+    if !ffmpeg_bin.exists() || !ffprobe_bin.exists() || !ffplay_bin.exists() {
         if update == true {
             println!(
                 "{} {} {} {}",
@@ -532,6 +556,8 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         }
 
         let ffmpeg_bin = libs.join("ffmpeg");
+        let ffprobe_bin = libs.join("ffprobe");
+        let ffplay_bin = libs.join("ffplay");
         let ffmpeg_zip;
         if termux.exists() && termux.is_dir() {
             if architecture == "aarch64" {
@@ -582,10 +608,12 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
                 termux.clone(),
             )?;
         }
-        if !ffmpeg_bin.exists() || update == true {
+        if !ffmpeg_bin.exists() || !ffplay_bin.exists() || !ffprobe_bin.exists() || update == true {
             ffmpeg_install(
                 update,
                 ffmpeg_bin,
+                ffprobe_bin,
+                ffplay_bin,
                 ffmpeg_url,
                 ffmpeg_zip,
                 termux,
@@ -652,6 +680,8 @@ fn ytdlp_install(update: bool, ytdlp_bin: PathBuf, ytdlp_url: String) -> io::Res
 fn ffmpeg_install(
     update: bool,
     ffmpeg_bin: PathBuf,
+    ffprobe_bin: PathBuf,
+    ffplay_bin: PathBuf,
     ffmpeg_url: String,
     ffmpeg_zip: PathBuf,
     home: PathBuf,
@@ -664,6 +694,12 @@ fn ffmpeg_install(
     if ffmpeg_bin.exists() {
         fs::remove_file(&ffmpeg_bin)?;
     }
+    if ffprobe_bin.exists() {
+        fs::remove_file(&ffprobe_bin)?;
+    }
+    if ffplay_bin.exists() {
+        fs::remove_file(&ffplay_bin)?;
+    }
     go(ffmpeg_url, ffmpeg_zip.to_string_lossy().to_string())?;
     extract_zip(
         &ffmpeg_zip.to_string_lossy(),
@@ -671,10 +707,14 @@ fn ffmpeg_install(
     )?;
     fs::remove_file(ffmpeg_zip)?;
     let source = "AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build\\bin\\ffmpeg.exe";
+    let source2 = "AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build\\bin\\ffprobe.exe";
+    let source3 = "AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build\\bin\\ffplay.exe";
     fs::copy(source, &ffmpeg_bin)?;
+    fs::copy(source2, &ffprobe_bin)?;
+    fs::copy(source3, &ffplay_bin)?;
     fs::remove_dir_all(home.join("AppData\\Local\\Temp\\ffmpeg-7.1-essentials_build"))?;
 
-    if !ffmpeg_bin.exists() {
+    if !ffmpeg_bin.exists() || !ffplay_bin.exists() || !ffprobe_bin.exists() {
         if update == true {
             println!(
                 "{} {} {} {}",
@@ -721,6 +761,8 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         let ytdlp_url =
             "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe".to_string();
         let ffmpeg_bin = libs.join("ffmpeg.exe");
+        let ffprobe_bin = libs.join("ffprobe.exe");
+        let ffplay_bin = libs.join("ffplay.exe");
         let ffmpeg_zip = home.join("AppData\\Local\\Temp\\ffmpeg-release-essentials.zip");
         let ffmpeg_url =
             "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip".to_string();
@@ -731,8 +773,16 @@ fn ytdlp_check(update: bool) -> io::Result<()> {
         if !ytdlp_bin.exists() || update == true {
             ytdlp_install(update, ytdlp_bin, ytdlp_url)?;
         }
-        if !ffmpeg_bin.exists() || update == true {
-            ffmpeg_install(update, ffmpeg_bin, ffmpeg_url, ffmpeg_zip, home)?;
+        if !ffmpeg_bin.exists() || !ffplay_bin.exists() || !ffprobe_bin.exists() || update == true {
+            ffmpeg_install(
+                update,
+                ffmpeg_bin,
+                ffprobe_bin,
+                ffplay_bin,
+                ffmpeg_url,
+                ffmpeg_zip,
+                home,
+            )?;
         }
     }
 
@@ -744,13 +794,12 @@ fn ytdlp_go(system: String, url: String, out: String, force: bool) -> io::Result
         if system == "unix" {
             let libs = home.join(".local/share/pls/libs");
             let ytdlp_bin = libs.join("yt-dlp");
-            let ffmpeg_bin = libs.join("ffmpeg");
             if force == true {
                 let dw = format!(
                     "{} {} --force-overwrites --ffmpeg-location {} -P {}",
                     ytdlp_bin.to_string_lossy(),
                     url,
-                    ffmpeg_bin.to_string_lossy(),
+                    libs.to_string_lossy(),
                     out
                 );
                 run_command_interactive(&dw)?;
@@ -759,7 +808,7 @@ fn ytdlp_go(system: String, url: String, out: String, force: bool) -> io::Result
                     "{} {} --no-overwrites --ffmpeg-location {} -P {}",
                     ytdlp_bin.to_string_lossy(),
                     url,
-                    ffmpeg_bin.to_string_lossy(),
+                    libs.to_string_lossy(),
                     out
                 );
                 run_command_interactive(&dw)?;
@@ -767,13 +816,12 @@ fn ytdlp_go(system: String, url: String, out: String, force: bool) -> io::Result
         } else {
             let libs = home.join("AppData\\Roaming\\pls\\libs");
             let ytdlp_bin = libs.join("yt-dlp.exe");
-            let ffmpeg_bin = libs.join("ffmpeg.exe");
             if force == true {
                 let dw = format!(
                     "{} {} --force-overwrites --ffmpeg-location {} -P {}",
                     ytdlp_bin.to_string_lossy(),
                     url,
-                    ffmpeg_bin.to_string_lossy(),
+                    libs.to_string_lossy(),
                     out
                 );
                 run_command_interactive(&dw)?;
@@ -782,7 +830,7 @@ fn ytdlp_go(system: String, url: String, out: String, force: bool) -> io::Result
                     "{} {} --no-overwrites --ffmpeg-location {} -P {}",
                     ytdlp_bin.to_string_lossy(),
                     url,
-                    ffmpeg_bin.to_string_lossy(),
+                    libs.to_string_lossy(),
                     out
                 );
                 run_command_interactive(&dw)?;
@@ -815,7 +863,7 @@ fn main() -> io::Result<()> {
         let mut update = false;
         let mut file_name = String::new();
         let system = detect_os();
-        let version = "0.1.3".to_string();
+        let version = "0.1.4".to_string();
 
         if cmd != "-f" && cmd != "--force" {
             if cmd == "-m" || cmd == "--media" {
