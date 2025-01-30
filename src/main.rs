@@ -863,7 +863,7 @@ fn main() -> io::Result<()> {
         let mut update = false;
         let mut file_name = String::new();
         let system = detect_os();
-        let version = "0.1.4".to_string();
+        let version = "0.1.5".to_string();
 
         if cmd != "-f" && cmd != "--force" {
             if cmd == "-m" || cmd == "--media" {
@@ -1073,11 +1073,12 @@ fn main() -> io::Result<()> {
                             let out_bare = get_dir_from_path(&out);
                             if Path::new(&out_bare).exists() && Path::new(&out_bare).is_dir() {
                                 if out_bare == "." {
-                                    out = file_name;
                                     file_check_go(url, out, force)?;
                                 } else {
                                     go(url, out)?;
                                 }
+                            } else if out_bare == "" {
+                                go(url, out)?;
                             } else if out == "empty" {
                                 out = file_name;
                                 file_check_go(url, out, force)?;
