@@ -863,7 +863,7 @@ fn main() -> io::Result<()> {
         let mut update = false;
         let mut file_name = String::new();
         let system = detect_os();
-        let version = "0.1.5".to_string();
+        let version = "0.1.6".to_string();
 
         if cmd != "-f" && cmd != "--force" {
             if cmd == "-m" || cmd == "--media" {
@@ -1078,6 +1078,9 @@ fn main() -> io::Result<()> {
                                     go(url, out)?;
                                 }
                             } else if out_bare == "" {
+                                if out == "empty" {
+                                    out = file_name;
+                                }
                                 go(url, out)?;
                             } else if out == "empty" {
                                 out = file_name;
