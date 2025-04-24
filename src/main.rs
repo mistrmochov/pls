@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 #[cfg(unix)]
 use tar::Archive;
+use terminal_size::{terminal_size, Width};
 use url::Url;
 #[cfg(unix)]
 use xz2::read::XzDecoder;
@@ -47,6 +48,11 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
     // Create an HTTP client and send the GET request
     let client = Client::new();
     let mut response = client.get(url).send()?;
+    let term_width = match terminal_size() {
+        Some((Width(w), _)) => w,
+        None => 80, // fallback default
+    };
+    let url_length = url.chars().count();
 
     // Get the total size of the file (if available)
     let total_size = response.content_length().unwrap_or(0);
@@ -66,37 +72,128 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
     blue.push(200);
     blue.push(255);
 
-    let decorative_start_line = "┌────────────────────────────────────────────────────────────────────────────────────────────────┐".truecolor(pink[0], pink[1], pink[2]);
-    let decorative_end_line = "└────────────────────────────────────────────────────────────────────────────────────────────────┘".truecolor(pink[0], pink[1], pink[2]);
+    let mut decorative_start_line = "┌──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
+    let mut decorative_end_line = "└──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
     let decorative_line = "│".truecolor(pink[0], pink[1], pink[2]);
+
+    let comparison =
+        "─────────────────────────────────────────────────────────────────────────────────┐";
+
+    if (url_length) >= comparison.chars().count() {
+        for i in 1..=url_length + 1 {
+            if i == (url_length + 1) {
+                decorative_start_line = format!(
+                    "{}{}",
+                    decorative_start_line.truecolor(pink[0], pink[1], pink[2]),
+                    "┐".truecolor(pink[0], pink[1], pink[2])
+                );
+                decorative_end_line = format!(
+                    "{}{}",
+                    decorative_end_line.truecolor(pink[0], pink[1], pink[2]),
+                    "┘".truecolor(pink[0], pink[1], pink[2])
+                );
+            } else {
+                decorative_start_line = format!(
+                    "{}{}",
+                    decorative_start_line.truecolor(pink[0], pink[1], pink[2]),
+                    "─".truecolor(pink[0], pink[1], pink[2])
+                );
+                decorative_end_line = format!(
+                    "{}{}",
+                    decorative_end_line.truecolor(pink[0], pink[1], pink[2]),
+                    "─".truecolor(pink[0], pink[1], pink[2])
+                );
+            }
+        }
+    } else {
+        decorative_end_line = format!("{}","└──────────────────────────────────────────────────────────────────────────────────────────────┘".truecolor(pink[0], pink[1], pink[2]));
+        decorative_start_line = format!("{}","┌──────────────────────────────────────────────────────────────────────────────────────────────┐".truecolor(pink[0], pink[1], pink[2]));
+    }
 
     // Create and configure the progress bar
     let pb = ProgressBar::new(total_size);
     let pb_style_line = format!("{}", "|".truecolor(blue[0], blue[1], blue[2]));
     let pb_style_first = "{msg}\n";
-    let pb_style_start = format!(
-        "{}{} {}",
-        decorative_line,
-        "⟶".truecolor(blue[0], blue[1], blue[2]),
-        "Progress:".truecolor(pink[0], pink[1], pink[2])
-    );
     let pb_style_mid = "{bar:40.blue}";
     let percentage = "{percent}";
     let percent = format!("{}", "%".truecolor(blue[0], blue[1], blue[2]));
-    let pb_style_end = format!(
-        "{} {} {}  {}  {} {}\n{}{} {}   {}\n{}",
-        "{bytes}".truecolor(pink[0], pink[1], pink[2]),
-        "/".truecolor(blue[0], blue[1], blue[2]),
-        "{total_bytes}".truecolor(pink[0], pink[1], pink[2]),
-        pb_style_line.truecolor(blue[0], blue[1], blue[2]),
-        "ETA:".truecolor(pink[0], pink[1], pink[2]),
-        "{eta}".truecolor(blue[0], blue[1], blue[2]),
-        decorative_line,
-        "⟶".truecolor(blue[0], blue[1], blue[2]),
-        "Elapsed:".truecolor(pink[0], pink[1], pink[2]),
-        "{elapsed_precise}".truecolor(blue[0], blue[1], blue[2]),
-        decorative_end_line
-    );
+    let pb_style_end;
+    let pb_style_start;
+    let dw_file_name;
+    let finish_mes;
+    if term_width <= 100 {
+        pb_style_start = format!(
+            "{} {}",
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "Progress:".truecolor(pink[0], pink[1], pink[2])
+        );
+        pb_style_end = format!(
+            "{} {} {}  {}  {} {}\n{} {}   {}",
+            "{bytes}".truecolor(pink[0], pink[1], pink[2]),
+            "/".truecolor(blue[0], blue[1], blue[2]),
+            "{total_bytes}".truecolor(pink[0], pink[1], pink[2]),
+            pb_style_line.truecolor(blue[0], blue[1], blue[2]),
+            "ETA:".truecolor(pink[0], pink[1], pink[2]),
+            "{eta}".truecolor(blue[0], blue[1], blue[2]),
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "Elapsed:".truecolor(pink[0], pink[1], pink[2]),
+            "{elapsed_precise}".truecolor(blue[0], blue[1], blue[2])
+        );
+        dw_file_name = format!(
+            "{} {} {}\n{} {}         {}",
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "Downloading:".truecolor(pink[0], pink[1], pink[2]),
+            url.truecolor(blue[0], blue[1], blue[2]),
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "File:".truecolor(pink[0], pink[1], pink[2]),
+            file_name.truecolor(blue[0], blue[1], blue[2])
+        );
+        finish_mes = format!(
+            "{} {}",
+            "●".truecolor(blue[0], blue[1], blue[2]),
+            "Download complete!".truecolor(pink[0], pink[1], pink[2])
+        );
+    } else {
+        pb_style_start = format!(
+            "{}{} {}",
+            decorative_line,
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "Progress:".truecolor(pink[0], pink[1], pink[2])
+        );
+        pb_style_end = format!(
+            "{} {} {}  {}  {} {}\n{}{} {}   {}\n{}",
+            "{bytes}".truecolor(pink[0], pink[1], pink[2]),
+            "/".truecolor(blue[0], blue[1], blue[2]),
+            "{total_bytes}".truecolor(pink[0], pink[1], pink[2]),
+            pb_style_line.truecolor(blue[0], blue[1], blue[2]),
+            "ETA:".truecolor(pink[0], pink[1], pink[2]),
+            "{eta}".truecolor(blue[0], blue[1], blue[2]),
+            decorative_line,
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "Elapsed:".truecolor(pink[0], pink[1], pink[2]),
+            "{elapsed_precise}".truecolor(blue[0], blue[1], blue[2]),
+            decorative_end_line
+        );
+        dw_file_name = format!(
+            "{}\n{}{} {} {}\n{}{} {}         {}",
+            decorative_start_line,
+            decorative_line,
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "Downloading:".truecolor(pink[0], pink[1], pink[2]),
+            url.truecolor(blue[0], blue[1], blue[2]),
+            decorative_line,
+            "⟶".truecolor(blue[0], blue[1], blue[2]),
+            "File:".truecolor(pink[0], pink[1], pink[2]),
+            file_name.truecolor(blue[0], blue[1], blue[2])
+        );
+        finish_mes = format!(
+            "{}\n{}{} {}",
+            decorative_start_line,
+            decorative_line,
+            "●".truecolor(blue[0], blue[1], blue[2]),
+            "Download complete!".truecolor(pink[0], pink[1], pink[2])
+        );
+    }
     let pb_style = format!(
         "{}{}  {}  {}{}  {}  {}",
         pb_style_first,
@@ -114,18 +211,6 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
             .progress_chars("█▉▊▋▌▍▎▏  "),
     );
 
-    let dw_file_name = format!(
-        "{}\n{}{} {} {}\n{}{} {}         {}",
-        decorative_start_line,
-        decorative_line,
-        "⟶".truecolor(blue[0], blue[1], blue[2]),
-        "Downloading:".truecolor(pink[0], pink[1], pink[2]),
-        url.truecolor(blue[0], blue[1], blue[2]),
-        decorative_line,
-        "⟶".truecolor(blue[0], blue[1], blue[2]),
-        "File:".truecolor(pink[0], pink[1], pink[2]),
-        file_name.truecolor(blue[0], blue[1], blue[2])
-    );
     pb.set_message(dw_file_name);
 
     // Open the output file
@@ -137,13 +222,6 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
     // Copy the response to the file in chunks
     copy(&mut response, &mut writer)?;
 
-    let finish_mes = format!(
-        "{}\n{}{} {}",
-        decorative_start_line,
-        decorative_line,
-        "●".truecolor(blue[0], blue[1], blue[2]),
-        "Download complete!".truecolor(pink[0], pink[1], pink[2])
-    );
     pb.finish_with_message(finish_mes);
     println!(
         "{} {} {}",
