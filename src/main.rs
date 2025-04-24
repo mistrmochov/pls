@@ -76,13 +76,13 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
     let pb = ProgressBar::new(total_size);
     let pb_style_line = format!("{}", "|".truecolor(blue[0], blue[1], blue[2]));
     let pb_style_first = "{msg}\n";
-    let pb_style_mid = "{bar:40.blue}";
     let percentage = "{percent}";
     let percent = format!("{}", "%".truecolor(blue[0], blue[1], blue[2]));
     let pb_style_end;
     let pb_style_start;
     let dw_file_name;
     let finish_mes;
+    let pb_style_mid;
     if term_width <= 100 {
         let mut decorative_line = "".to_string();
         for _i in 1..=term_width {
@@ -120,15 +120,18 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
             "●".truecolor(blue[0], blue[1], blue[2]),
             "Download complete!".truecolor(pink[0], pink[1], pink[2])
         );
+        pb_style_mid = "{bar:10.blue}";
     } else {
-        let mut decorative_start_line = "┌──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
-        let mut decorative_end_line = "└──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
+        let mut decorative_start_line;
+        let mut decorative_end_line;
         let decorative_line = "│".truecolor(pink[0], pink[1], pink[2]);
 
         let comparison =
             "─────────────────────────────────────────────────────────────────────────────────┐";
 
         if (url_length) >= comparison.chars().count() {
+            decorative_start_line = "┌───────────────".to_string();
+            decorative_end_line = "└───────────────".to_string();
             for i in 1..=url_length + 1 {
                 if i == (url_length + 1) {
                     decorative_start_line = format!(
@@ -198,6 +201,7 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
             "●".truecolor(blue[0], blue[1], blue[2]),
             "Download complete!".truecolor(pink[0], pink[1], pink[2])
         );
+        pb_style_mid = "{bar:40.blue}";
     }
     let pb_style = format!(
         "{}{}  {}  {}{}  {}  {}",
