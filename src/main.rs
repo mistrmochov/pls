@@ -72,44 +72,6 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
     blue.push(200);
     blue.push(255);
 
-    let mut decorative_start_line = "┌──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
-    let mut decorative_end_line = "└──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
-    let decorative_line = "│".truecolor(pink[0], pink[1], pink[2]);
-
-    let comparison =
-        "─────────────────────────────────────────────────────────────────────────────────┐";
-
-    if (url_length) >= comparison.chars().count() {
-        for i in 1..=url_length + 1 {
-            if i == (url_length + 1) {
-                decorative_start_line = format!(
-                    "{}{}",
-                    decorative_start_line.truecolor(pink[0], pink[1], pink[2]),
-                    "┐".truecolor(pink[0], pink[1], pink[2])
-                );
-                decorative_end_line = format!(
-                    "{}{}",
-                    decorative_end_line.truecolor(pink[0], pink[1], pink[2]),
-                    "┘".truecolor(pink[0], pink[1], pink[2])
-                );
-            } else {
-                decorative_start_line = format!(
-                    "{}{}",
-                    decorative_start_line.truecolor(pink[0], pink[1], pink[2]),
-                    "─".truecolor(pink[0], pink[1], pink[2])
-                );
-                decorative_end_line = format!(
-                    "{}{}",
-                    decorative_end_line.truecolor(pink[0], pink[1], pink[2]),
-                    "─".truecolor(pink[0], pink[1], pink[2])
-                );
-            }
-        }
-    } else {
-        decorative_end_line = format!("{}","└──────────────────────────────────────────────────────────────────────────────────────────────┘".truecolor(pink[0], pink[1], pink[2]));
-        decorative_start_line = format!("{}","┌──────────────────────────────────────────────────────────────────────────────────────────────┐".truecolor(pink[0], pink[1], pink[2]));
-    }
-
     // Create and configure the progress bar
     let pb = ProgressBar::new(total_size);
     let pb_style_line = format!("{}", "|".truecolor(blue[0], blue[1], blue[2]));
@@ -122,13 +84,18 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
     let dw_file_name;
     let finish_mes;
     if term_width <= 100 {
+        let mut decorative_line = "".to_string();
+        for _i in 1..=term_width {
+            decorative_line = format!("{}{}", decorative_line, "─");
+        }
+
         pb_style_start = format!(
             "{} {}",
             "⟶".truecolor(blue[0], blue[1], blue[2]),
             "Progress:".truecolor(pink[0], pink[1], pink[2])
         );
         pb_style_end = format!(
-            "{} {} {}  {}  {} {}\n{} {}   {}",
+            "{} {} {}  {}  {} {}\n{} {}   {}\n{}",
             "{bytes}".truecolor(pink[0], pink[1], pink[2]),
             "/".truecolor(blue[0], blue[1], blue[2]),
             "{total_bytes}".truecolor(pink[0], pink[1], pink[2]),
@@ -137,23 +104,61 @@ fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error:
             "{eta}".truecolor(blue[0], blue[1], blue[2]),
             "⟶".truecolor(blue[0], blue[1], blue[2]),
             "Elapsed:".truecolor(pink[0], pink[1], pink[2]),
-            "{elapsed_precise}".truecolor(blue[0], blue[1], blue[2])
+            "{elapsed_precise}".truecolor(blue[0], blue[1], blue[2]),
+            decorative_line.truecolor(pink[0], pink[1], pink[2])
         );
         dw_file_name = format!(
-            "{} {} {}\n{} {}         {}",
-            "⟶".truecolor(blue[0], blue[1], blue[2]),
-            "Downloading:".truecolor(pink[0], pink[1], pink[2]),
-            url.truecolor(blue[0], blue[1], blue[2]),
+            "{}\n{} {}         {}",
+            decorative_line.truecolor(pink[0], pink[1], pink[2]),
             "⟶".truecolor(blue[0], blue[1], blue[2]),
             "File:".truecolor(pink[0], pink[1], pink[2]),
             file_name.truecolor(blue[0], blue[1], blue[2])
         );
         finish_mes = format!(
-            "{} {}",
+            "{}\n{} {}",
+            decorative_line.truecolor(pink[0], pink[1], pink[2]),
             "●".truecolor(blue[0], blue[1], blue[2]),
             "Download complete!".truecolor(pink[0], pink[1], pink[2])
         );
     } else {
+        let mut decorative_start_line = "┌──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
+        let mut decorative_end_line = "└──────────────────────────────────────────────────────────────────────────────────────────────".to_string();
+        let decorative_line = "│".truecolor(pink[0], pink[1], pink[2]);
+
+        let comparison =
+            "─────────────────────────────────────────────────────────────────────────────────┐";
+
+        if (url_length) >= comparison.chars().count() {
+            for i in 1..=url_length + 1 {
+                if i == (url_length + 1) {
+                    decorative_start_line = format!(
+                        "{}{}",
+                        decorative_start_line.truecolor(pink[0], pink[1], pink[2]),
+                        "┐".truecolor(pink[0], pink[1], pink[2])
+                    );
+                    decorative_end_line = format!(
+                        "{}{}",
+                        decorative_end_line.truecolor(pink[0], pink[1], pink[2]),
+                        "┘".truecolor(pink[0], pink[1], pink[2])
+                    );
+                } else {
+                    decorative_start_line = format!(
+                        "{}{}",
+                        decorative_start_line.truecolor(pink[0], pink[1], pink[2]),
+                        "─".truecolor(pink[0], pink[1], pink[2])
+                    );
+                    decorative_end_line = format!(
+                        "{}{}",
+                        decorative_end_line.truecolor(pink[0], pink[1], pink[2]),
+                        "─".truecolor(pink[0], pink[1], pink[2])
+                    );
+                }
+            }
+        } else {
+            decorative_end_line = format!("{}","└──────────────────────────────────────────────────────────────────────────────────────────────┘".truecolor(pink[0], pink[1], pink[2]));
+            decorative_start_line = format!("{}","┌──────────────────────────────────────────────────────────────────────────────────────────────┐".truecolor(pink[0], pink[1], pink[2]));
+        }
+
         pb_style_start = format!(
             "{}{} {}",
             decorative_line,
